@@ -1,0 +1,11 @@
+# Frontend dependencies
+frontend/node_modules/
+frontend/.next/
+
+# Environment files (contain secrets!)
+frontend/.env.local
+frontend/.env.production
+
+# OS generated files
+.DS_Store
+Thumbs.db
