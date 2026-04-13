@@ -2,10 +2,18 @@ from fastapi import FastAPI, Depends, HTTPException, Header
 from fastapi.middleware.cors import CORSMiddleware
 from sqlalchemy.orm import Session
 from typing import List
+from contextlib import asynccontextmanager
 import database
 import models
+import seed_data
 
-app = FastAPI(title="Hexora A&A Business Decision System API")
+@asynccontextmanager
+async def lifespan(app: FastAPI):
+    # Auto-seed the database with default user on every startup
+    seed_data.seed()
+    yield
+
+app = FastAPI(title="Hexora A&A Business Decision System API", lifespan=lifespan)
 
 app.add_middleware(
     CORSMiddleware,
