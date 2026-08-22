@@ -1,16 +1,14 @@
 import NextAuth from "next-auth";
-import Google from "next-auth/providers/google";
 import { prisma } from "@/lib/prisma";
+import { authConfig } from "@/auth.config";
 
+// Full auth config, including Prisma-backed callbacks. This file is only
+// imported by API routes and server components, which run in the Node.js
+// runtime — never by middleware (see auth.config.ts for the edge-safe subset).
 export const { handlers, signIn, signOut, auth } = NextAuth({
-  providers: [
-    Google({
-      clientId: process.env.GOOGLE_CLIENT_ID,
-      clientSecret: process.env.GOOGLE_CLIENT_SECRET,
-    }),
-  ],
-  session: { strategy: "jwt" },
+  ...authConfig,
   callbacks: {
+    ...authConfig.callbacks,
     // Runs every time someone signs in with Google.
     // Creates their row in the database the first time, and default
     // account groups so the Accounts page isn't empty.
@@ -64,8 +62,5 @@ export const { handlers, signIn, signOut, auth } = NextAuth({
       }
       return session;
     },
-  },
-  pages: {
-    signIn: "/login",
   },
 });
