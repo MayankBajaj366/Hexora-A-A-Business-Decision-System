@@ -1,0 +1,90 @@
+// Hexora A&A — database schema
+// Works with any Postgres database (free tier: Supabase, Neon, or Vercel Postgres)
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+// One row per person who signs in with Google.
+model User {
+  id            String    @id @default(cuid())
+  email         String    @unique
+  name          String?
+  image         String?
+  createdAt     DateTime  @default(now())
+
+  // Business Profile (Profile Setup page)
+  companyName   String?
+  ownerName     String?
+  supportEmail  String?
+  autoEmails    Boolean   @default(true)
+  fraudAlerts   Boolean   @default(true)
+
+  accountGroups AccountGroup[]
+  accounts      Account[]
+  entries       LedgerEntry[]
+  insights      AiInsight[]
+}
+
+// "Account Groups" in the ERP menu — e.g. Assets, Liabilities, Income, Expenses
+model AccountGroup {
+  id        String    @id @default(cuid())
+  userId    String
+  user      User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  name      String
+  natureOf  String    // "asset" | "liability" | "income" | "expense" | "equity"
+  createdAt DateTime  @default(now())
+
+  accounts  Account[]
+
+  @@unique([userId, name])
+}
+
+// "Account Master" — the chart of accounts / ledgers a user creates
+model Account {
+  id              String        @id @default(cuid())
+  userId          String
+  user            User          @relation(fields: [userId], references: [id], onDelete: Cascade)
+  groupId         String
+  group           AccountGroup  @relation(fields: [groupId], references: [id])
+  name            String
+  openingBalance  Float         @default(0)
+  contactEmail    String?
+  contactPhone    String?
+  createdAt       DateTime      @default(now())
+
+  entries         LedgerEntry[]
+
+  @@unique([userId, name])
+}
+
+// "Cash/Bank Entry", "Journal Entry", "Sales/Purchase Entry" — one real ledger table backs all of them
+model LedgerEntry {
+  id          String    @id @default(cuid())
+  userId      String
+  user        User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  accountId   String
+  account     Account   @relation(fields: [accountId], references: [id], onDelete: Cascade)
+  type        String    // "debit" | "credit"
+  category    String    // "sale" | "purchase" | "receipt" | "payment" | "journal"
+  amount      Float
+  narration   String?
+  date        DateTime  @default(now())
+
+  @@index([userId, date])
+}
+
+// Cached AI-generated business suggestions so we don't re-call the AI on every page view
+model AiInsight {
+  id        String   @id @default(cuid())
+  userId    String
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  type      String   // "warning" | "info" | "opportunity"
+  message   String
+  createdAt DateTime @default(now())
+}
